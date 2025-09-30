@@ -5,4 +5,6 @@ Comment=Update 8BitDo controller firmware
 Exec=%EXEC_COMMAND%
 Icon=input-gaming
 Terminal=false
-Categories=Game;Utility;
+Categories=Utility;
+StartupNotify=true
+

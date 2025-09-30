@@ -52,31 +52,36 @@ Before running the setup script, ensure you have the following installed:
 3. **Update device configuration:**
    Edit `assets/71-8bitdo-boot.rules` with your device's Vendor ID and Product ID
 
-4. **Run the setup script:**
-   ```bash
-   chmod +x setup.sh
+4. **Script configuration (optional):**
+   Review and customize the default paths used by the script if needed.
+   You can find these variables at the top of the `setup.sh` file.
+   _See [Script Configuration](#️-script-configuration) section for details._
+
+5. **Run the setup script:**
+   Execute the script using:
+   ```sh
    ./setup.sh
    ```
+   - During execution, you may be prompted to install Mono. Accept the installation when prompted.
 
-5. **Launch the updater:**
-   Search for "8BitDo Firmware Updater" in your application menu
+## ⚙️ Script Configuration
 
-6. **Verify installation (optional):**
-   ```bash
-   ./verify-install.sh
-   ```
+The setup script uses configurable paths that you can customize at the top of `setup.sh`. Most users can run the script with default settings, but you may need to adjust these if your system uses non-standard locations:
+
+ - `WINE_PREFIX_DIR`: Base directory for Wine prefixes (default: `$HOME`).
+ - `WINE_PREFIX_NAME`: Name (and directory) of the Wine prefix (default: `.wine-8bitdo`).
+ - `TOOL_DIR`: Installation directory for the Windows 8BitDo application files (default: `$HOME/.local/share/8bitdo-updater`).
+ - `UDEV_RULES_DIR`: System directory for udev rules (default: `/etc/udev/rules.d`).
+ - `APPS_DIR`: Directory for desktop application entries (default: `$HOME/.local/share/applications`).
 
 ## 💡 Usage
 
 ### Launching the Application
 
-After successful installation, you can launch the firmware updater in several ways:
+After successful installation, you can launch the firmware updater via the "8BitDo Firmware Updater" in your application menu.
 
-1. **Application Menu:** Search for "8BitDo Firmware Updater"
-2. **Command Line:**
-   ```sh
-   WINEPREFIX="$HOME/.wine-8bitdo" wine "$HOME/.local/share/8bitdo-updater/8BitDo Firmware Updater.exe"
-   ```
+**Known Issue**
+- A dialog with a lengthy error message (Fatal Error code: 0x80041002 str: ...) may appear behind the main application window. **Do not close this dialog** - simply leave it running in the background, as closing it shuts the main app.
 
 ### Updating Controller Firmware
 
@@ -117,9 +122,10 @@ This creates a local test environment in the `DEBUG/` directory without modifyin
 
 ## 🙏 Acknowledgments
 
-- Original guide created by [archeYR](https://gist.github.com/archeYR/d687de5e484ce7b45d6a94415a04f3dc)
-- 8BitDo for creating excellent controllers and providing firmware update tools
-- The Wine project for enabling Windows applications on Linux
+- [archeYR](https://gist.github.com/archeYR/d687de5e484ce7b45d6a94415a04f3dc) for creating and sharing the original guide.
+- [mrbvrz](https://github.com/mrbvrz/segoe-ui-linux) for sharing the segoe fonts pack.
+- [Wine project](https://www.winehq.org/) for enabling Windows applications on Linux.
+- [8BitDo](https://www.8bitdo.com/) for creating excellent controllers and providing firmware update tools. We're waiting for Linux support though ;)
 
 ## ⚖️ License
 

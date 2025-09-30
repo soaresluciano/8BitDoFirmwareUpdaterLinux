@@ -1,32 +1,33 @@
 #!/bin/bash
 # Script: 8BitDo Firmware Updater Setup
 # Author: Luciano Soares
-# Version: 1.0.0
+# Version: 1.1.0
 # Based on: https://gist.github.com/archeYR/d687de5e484ce7b45d6a94415a04f3dc
 set -e
 
-# Configuration
-SEGOE_UI_URL="https://github.com/mrbvrz/segoe-ui-linux/archive/refs/heads/master.zip"
-UPDATER_URL="https://download.8bitdo.com/Tools/FirmwareUpdater/8BitDo_Firmware_Updater_Win.zip?00"
-WINE_PREFIX="$HOME/.wine-8bitdo"
+# === SCRIPT CONFIGURATION ===
+WINE_PREFIX_DIR="$HOME"
+WINE_PREFIX_NAME=".wine-8bitdo"
 TOOL_DIR="$HOME/.local/share/8bitdo-updater"
 UDEV_RULES_DIR="/etc/udev/rules.d"
 APPS_DIR="$HOME/.local/share/applications"
+#=== END SCRIPT CONFIGURATION ===
+
+#urls
+SEGOE_UI_URL="https://github.com/mrbvrz/segoe-ui-linux/archive/refs/heads/master.zip"
+UPDATER_URL="https://download.8bitdo.com/Tools/FirmwareUpdater/8BitDo_Firmware_Updater_Win.zip?00"
 
 if [ "$1" == "debug" ]; then
     echo "Running in debug mode"
     DEBUG=true
-else
-    DEBUG=false
-fi
 
-if [ "$DEBUG" = true ]; then
     echo "Debug mode: Using local directories"
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     DEBUG_BASE_DIR="$SCRIPT_DIR/DEBUG"
     
     TEMP_DIR="$DEBUG_BASE_DIR/temp"
-    WINE_PREFIX="$DEBUG_BASE_DIR/.wine-8bitdo"
+    WINE_PREFIX_DIR="$DEBUG_BASE_DIR/.prefixes"
+    WINE_PREFIX_NAME=".wine-8bitdo"
     TOOL_DIR="$DEBUG_BASE_DIR/8bitdo-updater"
     UDEV_RULES_DIR="$DEBUG_BASE_DIR/udev-rules.d"
     APPS_DIR="$DEBUG_BASE_DIR/applications"
@@ -35,8 +36,13 @@ if [ "$DEBUG" = true ]; then
     rm -rf "$DEBUG_BASE_DIR"
     mkdir -p "$TEMP_DIR" "$UDEV_RULES_DIR" "$APPS_DIR"
 else
+    DEBUG=false
+
+    # Create temp dir     
     TEMP_DIR=$(mktemp -d)
 fi
+
+WINE_PREFIX="$WINE_PREFIX_DIR/$WINE_PREFIX_NAME"
 
 # Colors for output
 BLUE='\033[0;34m'
@@ -72,14 +78,14 @@ prompt_overwrite() {
     local resource_name="$1"
     
     echo "$resource_name already exists."
-    read -p "${YELLOW}Do you want to overwrite it? (y/N) ${NC}" -n 1 -r
+    read -p "Do you want to overwrite it? (y/N)" -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "The $resource_name will be overwritten."
-        return 1
+        return 0  # user wants to overwrite
     else
         echo "Using existing $resource_name."
-        return 0
+        return 1  # user doesn't want to overwrite
     fi
 }
 
@@ -172,13 +178,35 @@ download_and_install_updater() {
 create_desktop_entry() {
     header "Creating desktop entry"
     
-    # Build the complete exec command
-    local exec_command="WINEPREFIX=\"$WINE_PREFIX\" wine \"$TOOL_DIR/8BitDo Firmware Updater.exe\""
+    local desktop_file_path="$APPS_DIR/8bitdo-updater.desktop"
     
-    # Copy the desktop entry template and replace the exec command
-    sed "s|%EXEC_COMMAND%|$exec_command|g" assets/8bitdo-updater.desktop > "$APPS_DIR/8bitdo-updater.desktop"
+    local should_create_desktop=true
+    if [ -f "$desktop_file_path" ]; then
+        if ! prompt_overwrite "Desktop entry at $desktop_file_path"; then
+            should_create_desktop=false
+        fi
+    fi
 
-    success "Desktop entry created"
+    if [ "$should_create_desktop" = true ]; then
+        # Define the executable path (escaped for desktop file)
+        local exe_path="$TOOL_DIR/8BitDo\ Firmware\ Updater.exe"
+        
+        # Build the complete exec command using env to set WINEPREFIX
+        local exec_command="env WINEPREFIX='$WINE_PREFIX' wine '$exe_path'"
+
+        # Use the template file and replace the exec command placeholder
+        sed "s|%EXEC_COMMAND%|$exec_command|g" assets/8bitdo-updater.desktop > "$desktop_file_path"
+
+        # Make the desktop file executable
+        chmod +x "$desktop_file_path"
+        
+        # Update the desktop database
+        if command -v update-desktop-database &> /dev/null; then
+            update-desktop-database "$APPS_DIR/"
+        fi
+
+        success "Desktop entry created"
+    fi
 }
 
 configure_wine_registry() {
@@ -195,6 +223,8 @@ configure_wine_registry() {
 }
 
 setup_wine_prefix() {
+    mkdir -p "$WINE_PREFIX_DIR"
+
     local should_create_prefix=true
     if [ -d "$WINE_PREFIX" ]; then
         if ! prompt_overwrite "Wine prefix"; then
