@@ -19,10 +19,24 @@ I made this script to document and automate my steps, hoping others find it usef
 
 Before running the setup script, ensure you have the following installed:
 
-- **Wine** (for running windows apps)
+- **wine** (for running windows apps)
 - **wget** (for downloading files)
 - **unzip** (for extracting archives)
 - **sudo access** (for installing udev rules)
+
+## ⚠️ Known Issues
+These are known issues that I'm working on. They do not affect the usage of the app or the update process: 
+- A dialog with a lengthy error message (Fatal Error code: 0x80041002 str: ...) may appear behind the main application window. 
+**Do not close this dialog** - simply leave it running in the background, as closing it will shut down the main application.
+
+## 🎮 Device Boot Mode
+
+To update your controller's firmware, you need to put it into boot/update mode:
+
+1. Connect the controller via USB while holding `L + R` buttons to enter **boot mode**.
+2. The orange LED will start blinking, indicating the controller is in boot mode and ready for firmware updates.
+
+**Note:** Different controller models may have different button combinations for entering boot mode. Always check your specific controller's manual for the correct procedure.
 
 ## 🚀 Quick Start
 
@@ -33,12 +47,9 @@ Before running the setup script, ensure you have the following installed:
    ```
 
 2. **Identify your device (important!):**
+   Connect your device in **boot mode** and check if it is detected by using:
    ```sh
    lsusb
-   ```
-   or the detailed version
-   ```sh
-   lsusb -v
    ```
    Look for a line containing "8BitDo" or your device's model. It will show something like:
     ```
@@ -55,7 +66,7 @@ Before running the setup script, ensure you have the following installed:
 4. **Script configuration (optional):**
    Review and customize the default paths used by the script if needed.
    You can find these variables at the top of the `setup.sh` file.
-   _See [Script Configuration](#️-script-configuration) section for details._
+   _See [Script Configuration](#script-configuration) section for details._
 
 5. **Run the setup script:**
    Execute the script using:
@@ -78,17 +89,29 @@ The setup script uses configurable paths that you can customize at the top of `s
 
 ### Launching the Application
 
-After successful installation, you can launch the firmware updater via the "8BitDo Firmware Updater" in your application menu.
+After successful installation, you can launch the firmware updater via:
 
-**Known Issue**
-- A dialog with a lengthy error message (Fatal Error code: 0x80041002 str: ...) may appear behind the main application window. **Do not close this dialog** - simply leave it running in the background, as closing it shuts the main app.
+1. **App Launcher:** You will find a new item named "8BitDo Firmware Updater"
+2. **Launch Script:** `$HOME/.local/share/8bitdo-updater/launch-8bitdo-updater.sh`
+3. **Command Line:**
+   ```sh
+   WINEPREFIX="$HOME/.wine-8bitdo" wine "$HOME/.local/share/8bitdo-updater/8BitDo Firmware Updater.exe"
+   ```
 
 ### Updating Controller Firmware
 
-1. Put your controller into **update mode** (refer to your controller's manual)
-2. Connect the controller via USB
-3. Launch the 8BitDo Firmware Updater
-4. Follow the on-screen instructions in the updater
+Here are the steps I follow to update my SN30 PRO controller:
+
+1. Launch the 8BitDo Firmware Updater.
+2. Connect the controller via USB in **update mode**.
+3. The application will automatically load the list of available devices.
+   - If the list does not load, most probably, your device was not detected or is not in boot mode. You can still try the "Update Manually" option in the app's main menu (the icon on the title bar).
+4. Select your device from the list.
+5. Choose the firmware version you want to install, then click the "Update" button.
+6. The "Update" button will transform into a progress bar as the update begins.
+   - You can monitor the progress in the terminal output as well.
+7. When the update completes, the progress bar will turn into a green button displaying "Update complete".
+8. You can now close the application. 
 
 ### Debug Information
 
@@ -109,9 +132,26 @@ If you need to troubleshoot:
    sudo udevadm info --attribute-walk --name=/dev/hidraw0
    ```
 
-4. **Check the usb connectivity of you device:**
+4. **Check the USB connectivity of your device:**
    ```sh
    sudo dmesg | tail -20
+   ```
+   or
+
+   ```sh
+   sudo dmesg -w
+   ```
+
+5. **Detail information of USB devices**
+   
+   all devices
+   ```
+   lsusb -v
+   ```
+
+   Vendor ID `2dc8` Product ID `5750`
+   ```
+   lsusb -v -d 2dc8:6001
    ```
 
 For development, you can run the script in debug mode:

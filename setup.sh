@@ -1,7 +1,7 @@
 #!/bin/bash
 # Script: 8BitDo Firmware Updater Setup
 # Author: Luciano Soares
-# Version: 1.1.0
+# Version: 1.2.0
 # Based on: https://gist.github.com/archeYR/d687de5e484ce7b45d6a94415a04f3dc
 set -e
 
@@ -78,14 +78,14 @@ prompt_overwrite() {
     local resource_name="$1"
     
     echo "$resource_name already exists."
-    read -p "Do you want to overwrite it? (y/N)" -n 1 -r
+    read -p "Do you want to overwrite it? (y/N) " -n 1 -r
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "The $resource_name will be overwritten."
-        return 0  # user wants to overwrite
+        return 0
     else
         echo "Using existing $resource_name."
-        return 1  # user doesn't want to overwrite
+        return 1
     fi
 }
 
@@ -131,15 +131,16 @@ install_udev_rule() {
             should_create_rule=false
         fi
     fi
-
-    if [ "$should_create_rule" = true ]; then
-        sudo cp assets/71-8bitdo-boot.rules "$rule_path"
-        success "Udev rule created successfully"
-
-        echo "Reloading udev rules..."
-        sudo udevadm control --reload-rules && sudo udevadm trigger
-        success "Udev rules reloaded"
+    if [ "$should_create_rule" = false ]; then
+        return
     fi
+
+    sudo cp assets/71-8bitdo-boot.rules "$rule_path"
+    success "Udev rule created successfully"
+
+    echo "Reloading udev rules..."
+    sudo udevadm control --reload-rules && sudo udevadm trigger
+    success "Udev rules reloaded"
 }
 
 install_segoe_ui_font() {
@@ -157,6 +158,19 @@ install_segoe_ui_font() {
 download_and_install_updater() {
     header "Downloading 8BitDo Firmware Updater"
 
+    local should_install_app=true
+    if [ -d "$TOOL_DIR" ]; then
+        if ! prompt_overwrite "Download and install 8BitDo Firmware Updater"; then
+            should_install_app=false
+        else
+            rm -rf "$TOOL_DIR"
+            echo "Existing 8BitDo Firmware Updater removed."
+        fi
+    fi
+    if [ "$should_install_app" = false ]; then
+        return
+    fi
+    
     mkdir -p "$TOOL_DIR"
 
     cd "$TEMP_DIR"
@@ -175,51 +189,71 @@ download_and_install_updater() {
     success "Download and extraction complete"
 }
 
-create_desktop_entry() {
-    header "Creating desktop entry"
+create_launcher_script() {
+    header "Creating launcher script"
     
-    local desktop_file_path="$APPS_DIR/8bitdo-updater.desktop"
+    local launcher_script="$TOOL_DIR/launch-8bitdo-updater.sh"
+    local should_create_script=true
     
-    local should_create_desktop=true
-    if [ -f "$desktop_file_path" ]; then
-        if ! prompt_overwrite "Desktop entry at $desktop_file_path"; then
-            should_create_desktop=false
+    if [ -f "$launcher_script" ]; then
+        if ! prompt_overwrite "Launcher script"; then
+            should_create_script=false
+        else
+            rm -f "$launcher_script"
+            echo "Existing launcher script removed."
         fi
     fi
-
-    if [ "$should_create_desktop" = true ]; then
-        # Define the executable path (escaped for desktop file)
-        local exe_path="$TOOL_DIR/8BitDo\ Firmware\ Updater.exe"
-        
-        # Build the complete exec command using env to set WINEPREFIX
-        local exec_command="env WINEPREFIX='$WINE_PREFIX' wine '$exe_path'"
-
-        # Use the template file and replace the exec command placeholder
-        sed "s|%EXEC_COMMAND%|$exec_command|g" assets/8bitdo-updater.desktop > "$desktop_file_path"
-
-        # Make the desktop file executable
-        chmod +x "$desktop_file_path"
-        
-        # Update the desktop database
-        if command -v update-desktop-database &> /dev/null; then
-            update-desktop-database "$APPS_DIR/"
-        fi
-
-        success "Desktop entry created"
+    
+    if [ "$should_create_script" = true ]; then
+        cat > "$launcher_script" << EOF
+#!/bin/bash
+# 8BitDo Firmware Updater Launcher Script
+cd "${TOOL_DIR}"
+WINEPREFIX="${WINE_PREFIX}" wine "8BitDo Firmware Updater.exe"
+EOF
+        chmod +x "$launcher_script"
+        success "Launcher script created"
     fi
 }
 
-configure_wine_registry() {
-    header "Configuring Wine registry"
-
-    # Add registry value to disable SDL for winebus service
-    WINEPREFIX="$WINE_PREFIX" wine reg add "HKLM\\System\\CurrentControlSet\\Services\\winebus" /v "Enable SDL" /t REG_DWORD /d 0 /f
-    success "Registry value added"
+create_desktop_entry() {
+    header "Creating desktop entry"
     
-    # Shutdown wine server to save and apply registry changes
-    echo "Shutting down wine server to apply changes..."
-    WINEPREFIX="$WINE_PREFIX" wineserver -k
-    success "Wine server shutdown complete"
+    local should_create_entry=true
+    if [ -f "$APPS_DIR/8bitdo-updater.desktop" ]; then
+        if ! prompt_overwrite "Desktop entry"; then
+            should_create_entry=false
+        else
+            rm -f "$APPS_DIR/8bitdo-updater.desktop"
+            echo "Existing desktop entry removed."
+        fi
+    fi
+    if [ "$should_create_entry" = false ]; then
+        return
+    fi
+
+    # Create the desktop entry that calls the launcher script
+    cat > "$APPS_DIR/8bitdo-updater.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=8BitDo Firmware Updater
+Comment=Update 8BitDo controller firmware
+Exec=${TOOL_DIR}/launch-8bitdo-updater.sh
+Icon=input-gaming
+Terminal=true
+Categories=Game;Utility;
+StartupWMClass=8BitDo Firmware Updater.exe
+StartupNotify=true
+EOF
+
+    # Make the desktop file executable
+    chmod +x "$APPS_DIR/8bitdo-updater.desktop"
+    
+    # Update the desktop database
+    if command -v update-desktop-database &> /dev/null; then
+        update-desktop-database "$APPS_DIR/"
+    fi
+    success "Desktop entry created"
 }
 
 setup_wine_prefix() {
@@ -231,6 +265,7 @@ setup_wine_prefix() {
             should_create_prefix=false
         else
             rm -rf "$WINE_PREFIX"
+            echo "Existing Wine prefix removed."
         fi
     fi
 
@@ -238,7 +273,11 @@ setup_wine_prefix() {
         WINEPREFIX="$WINE_PREFIX" WINEARCH=win64 wineboot -u
         success "Wine prefix created"
 
-        configure_wine_registry
+        install_segoe_ui_font
+
+        echo "Shutting down wine server to apply changes..."
+        WINEPREFIX="$WINE_PREFIX" wineserver -k
+        success "Wine server shutdown complete"
     fi
 }
 
@@ -257,6 +296,7 @@ final_message() {
     success "=== Setup Complete! ==="
     echo -e "You can now run the 8BitDo Firmware Updater by:"
     echo -e "  • Searching for '8BitDo Firmware Updater' in your application menu"
+    echo -e "  • Running the script at: ${TOOL_DIR}/launch-8bitdo-updater.sh"
 }
 
 cleanup() {
@@ -281,9 +321,10 @@ root_check
 check_dependencies "wine" "unzip" "wget"
 install_udev_rule
 setup_prefix
-install_segoe_ui_font
 download_and_install_updater
-create_desktop_entry
+create_launcher_script
+create_desktop_entry 
+
 final_message
 
 # Cleanup function
