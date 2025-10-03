@@ -1,3 +1,7 @@
+# 8BitDo M30 Bluetooth gamepad
+SUBSYSTEM=="hidraw", ATTRS{idProduct}=="3208", ATTRS{idVendor}=="2dc8", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idProduct}=="3208", ATTRS{idVendor}=="2dc8", TAG+="uaccess"
+
 # 8BitDo SN30/SF30 Pro gamepad
 SUBSYSTEM=="hidraw", ATTRS{idProduct}=="5750", ATTRS{idVendor}=="2dc8", TAG+="uaccess"
-SUBSYSTEM=="usb", ATTRS{idProduct}=="5750", ATTRS{idVendor}=="2dc8", TAG+="uaccess
+SUBSYSTEM=="usb", ATTRS{idProduct}=="5750", ATTRS{idVendor}=="2dc8", TAG+="uaccess"

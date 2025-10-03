@@ -115,7 +115,15 @@ Here are the steps I follow to update my SN30 PRO controller:
 
 ## 🔧 Troubleshoot
 
-Here are some helpful commands for troubleshooting:
+### Installation Verification
+
+Use the included verification script to check if everything was installed correctly:
+
+```sh
+./verify-install.sh
+```
+
+Here are some helpful extra commands for troubleshooting:
 
 1. **Check Wine configuration:**
    ```sh
@@ -151,7 +159,7 @@ Here are some helpful commands for troubleshooting:
 
    Vendor ID `2dc8` Product ID `5750`
    ```
-   lsusb -v -d 2dc8:6001
+   lsusb -v -d 2dc8:5750
    ```
 
 ## 🛠️ Development
