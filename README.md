@@ -113,9 +113,9 @@ Here are the steps I follow to update my SN30 PRO controller:
 7. When the update completes, the progress bar will turn into a green button displaying "Update complete".
 8. You can now close the application. 
 
-### Debug Information
+## 🔧 Troubleshoot
 
-If you need to troubleshoot:
+Here are some helpful commands for troubleshooting:
 
 1. **Check Wine configuration:**
    ```sh
@@ -153,6 +153,8 @@ If you need to troubleshoot:
    ```
    lsusb -v -d 2dc8:6001
    ```
+
+## 🛠️ Development
 
 For development, you can run the script in debug mode:
 ```sh
